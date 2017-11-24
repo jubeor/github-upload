@@ -18,7 +18,7 @@
 
 /* extern variables ----------------------------------------------------------*/
 
-extern UART_HandleTypeDef * huart; // Defined in main.c
+extern UART_HandleTypeDef huart3; // Defined in main.c
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -50,6 +50,12 @@ void SysTick_Handler(void)
 
 void USART3_IRQHandler(void)
 {
-	HAL_UART_IRQHandler(huart);
+	HAL_UART_IRQHandler(&huart3);
 
+	__HAL_UART_CLEAR_FLAG(&huart3,UART_FLAG_RXNE);
+	__HAL_UART_CLEAR_FLAG(&huart3,UART_FLAG_TC);
+	__HAL_UART_CLEAR_FLAG(&huart3,UART_FLAG_CTS);
+	__HAL_UART_CLEAR_FLAG(&huart3,UART_FLAG_LBD);
+	__HAL_UART_CLEAR_OREFLAG(&huart3);
+	__HAL_UART_CLEAR_NEFLAG(&huart3);
 }

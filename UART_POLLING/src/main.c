@@ -9,6 +9,11 @@
 */
 
 
+/*
+ * Error occur: Overrun
+ * Error occur: Noise
+ * */
+
 /* Includes ------------------------------------------------------------------*/
 
 #include "string.h"
@@ -27,8 +32,6 @@
 #define USART_PORT GPIOB
 #define USART_PIN_TX GPIO_PIN_10
 #define USART_PIN_RX GPIO_PIN_11
-//#define USART_PIN_CX GPIO_PIN_12
-//#define USART_PIN_CTS GPIO_PIN_13
 
 
 /* Threading definitions -----------------------------------------------------*/
@@ -39,12 +42,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-UART_HandleTypeDef * huart;
+UART_HandleTypeDef huart3;
 
 #define USART_BUFFER_SIZE 80
 #define USART_TIMEOUT 1000
 
-static uint8_t pDataTx[USART_BUFFER_SIZE];
+static uint8_t serialTxBuffer[USART_BUFFER_SIZE];
 static uint8_t serialRxBuffer[USART_BUFFER_SIZE];
 static uint8_t serialRxBufferIndex = 0;
 static uint8_t serialRx;
@@ -56,10 +59,11 @@ static uint8_t serialRx;
 
 static void SystemClock_Config(void);
 
-void Error_Handler_detailed(int line, uint8_t * file);
-
+static void Error_Handler_detailed(int line, uint8_t * file);
 
 static void USART3_UART_InitialInit(void);
+
+//static void serialSend_P()
 
 static void execute_serial_command(uint8_t * command);
 
@@ -68,32 +72,29 @@ int main(void)
 {
 	HAL_Init();
 
+	HAL_StatusTypeDef txstatus ;
+
 	SystemClock_Config();
 
 	USART3_UART_InitialInit();
 
-	strcpy(pDataTx,ENVIO_INICIAL);
+	strcpy(serialTxBuffer,ENVIO_INICIAL);
 
-//	HAL_UART_Transmit_IT(huart,pDataTx,strlen(pDataTx));
-//	size_t longitudStr = strlen(ENVIO_INICIAL);
-
-
-	HAL_StatusTypeDef txstatus = HAL_UART_Transmit(huart,pDataTx,strlen(pDataTx),USART_TIMEOUT);
+//	txstatus = HAL_UART_Transmit(&huart,&serialTxBuffer,strlen(serialTxBuffer),USART_TIMEOUT);
+	txstatus = HAL_UART_Transmit_IT(&huart3,&serialTxBuffer,strlen(serialTxBuffer));
 	if(txstatus!=HAL_OK)
 	{
 		Error_Handler_detailed(__LINE__,__FILE__);
 	}
-//	HAL_UART_Receive_IT(huart,serialRx,1);
 
-	strcpy(pDataTx,ENVIO_PERIODICO);
 
 	for(;;)
 	{
-		HAL_Delay(100);
+		HAL_Delay(1000);
 
-		HAL_StatusTypeDef txstatus = HAL_UART_Transmit(huart,pDataTx,strlen(pDataTx),USART_TIMEOUT);
-
-		if(txstatus!=HAL_OK)
+		strcpy(serialTxBuffer,ENVIO_PERIODICO);
+//		if(HAL_UART_Transmit_IT(&huart,&serialTxBuffer,strlen(serialTxBuffer))!=HAL_OK)
+		if(HAL_UART_Transmit(&huart3,&serialTxBuffer,strlen(serialTxBuffer),USART_TIMEOUT)!=HAL_OK)
 		{
 			Error_Handler_detailed(__LINE__,__FILE__);
 		}
@@ -184,17 +185,17 @@ void HAL_UART_MspInit(UART_HandleTypeDef * huart)
 
 	// b. PORT B INIT:
 
-	GPIO_InitTypeDef * hgpioInitInput;
-	hgpioInitInput = malloc(sizeof(GPIO_InitTypeDef *));
+	GPIO_InitTypeDef hgpioInitInput;
+//	hgpioInitInput = malloc(sizeof(GPIO_InitTypeDef *));
 
-	hgpioInitInput->Pin = USART_PIN_TX | USART_PIN_RX ;
-	hgpioInitInput->Mode = GPIO_MODE_AF_PP;
-	hgpioInitInput->Pull = GPIO_NOPULL;
-	hgpioInitInput->Speed = GPIO_SPEED_MEDIUM;
-	hgpioInitInput->Alternate = GPIO_AF7_USART3;
-	HAL_GPIO_Init(USART_PORT,hgpioInitInput);
+	hgpioInitInput.Pin = USART_PIN_TX | USART_PIN_RX ;
+	hgpioInitInput.Mode = GPIO_MODE_AF_PP;
+	hgpioInitInput.Pull = GPIO_PULLUP;
+	hgpioInitInput.Speed = GPIO_SPEED_MEDIUM;
+	hgpioInitInput.Alternate = GPIO_AF7_USART3;
+	HAL_GPIO_Init(USART_PORT,&hgpioInitInput);
 
-	free(hgpioInitInput);
+//	free(hgpioInitInput);
 
 	// c. NVIC configuration (when using HAL_UART_Transmit_IT() and HAL_UART_Receive_IT() APIs)
 
@@ -210,7 +211,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef * huart)
 void HAL_UART_MspDeInit(UART_HandleTypeDef * huart)
 {
 	//Nothing yet
-	free(huart);
+	//free(huart);
 
 	__HAL_RCC_USART3_CLK_DISABLE();
 
@@ -222,21 +223,21 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef * huart)
 static void USART3_UART_InitialInit(void)
 {
 
-	huart = (UART_HandleTypeDef *) malloc(sizeof(UART_HandleTypeDef *));
+//	huart = (UART_HandleTypeDef *) malloc(sizeof(UART_HandleTypeDef *));
 	// Instance for the USART3
-	huart->Instance = USART3;
+	huart3.Instance = USART3;
 
 	// Initial Configuration
-	huart->Init.BaudRate = 115200;
-	huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	huart->Init.Mode = UART_MODE_TX_RX;
-	huart->Init.OverSampling = UART_OVERSAMPLING_16;
-	huart->Init.Parity = UART_PARITY_NONE;
-	huart->Init.StopBits = UART_STOPBITS_1;
-	huart->Init.WordLength = UART_WORDLENGTH_8B;
+	huart3.Init.BaudRate = 115200;
+	huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart3.Init.Mode = UART_MODE_TX_RX;
+	huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+	huart3.Init.Parity = UART_PARITY_NONE;
+	huart3.Init.StopBits = UART_STOPBITS_1;
+	huart3.Init.WordLength = UART_WORDLENGTH_8B;
 
 
-	if(HAL_UART_Init(huart)!= HAL_OK)
+	if(HAL_UART_Init(&huart3)!= HAL_OK)
 	{
 		Error_Handler_detailed(__LINE__,__FILE__);
 	}
@@ -246,7 +247,7 @@ static void USART3_UART_InitialInit(void)
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
 
-//	HAL_UART_Transmit_IT(huart,pDataTx,strlen(pDataTx));
+//	HAL_UART_Transmit_IT(&huart,pDataTx,strlen(pDataTx));
 }
 
 
@@ -279,13 +280,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	}
 
 	/*	RxBufferIndex	serialRxBuffer[USART_BUFFER_SIZE]	*/
-	HAL_UART_Receive_IT(huart,serialRx,1);
+	//HAL_UART_Receive_IT(&huart,&serialRx,1);
 }
 
 static void execute_serial_command(uint8_t * command)
 {
 	//TODO: Crear la lista de comandos para responder a peticiones externas
-	HAL_StatusTypeDef txstatus = HAL_UART_Transmit(huart,command,strlen(command),USART_TIMEOUT);
+	HAL_StatusTypeDef txstatus = HAL_UART_Transmit(&huart3,command,strlen(command),USART_TIMEOUT);
 	if(txstatus!=HAL_OK)
 	{
 		Error_Handler_detailed(__LINE__,__FILE__);
