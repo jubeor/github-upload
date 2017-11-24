@@ -9,15 +9,14 @@
 */
 
 
-
-
 /* Includes ------------------------------------------------------------------*/
 
 #include "string.h"
+#include "stdlib.h"
 
 #include "stm32f4xx.h"
 #include "stm32f4_discovery.h"
-#include "LIS3DSH_definitions.h"
+
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -28,8 +27,8 @@
 #define USART_PORT GPIOB
 #define USART_PIN_TX GPIO_PIN_10
 #define USART_PIN_RX GPIO_PIN_11
-#define USART_PIN_CX GPIO_PIN_12
-#define USART_PIN_CTS GPIO_PIN_13
+//#define USART_PIN_CX GPIO_PIN_12
+//#define USART_PIN_CTS GPIO_PIN_13
 
 
 /* Threading definitions -----------------------------------------------------*/
@@ -39,39 +38,66 @@
 
 
 /* Private variables ---------------------------------------------------------*/
-//USART_HandleTypeDef husart;
-UART_HandleTypeDef huart;
+
+UART_HandleTypeDef * huart;
 
 #define USART_BUFFER_SIZE 80
 #define USART_TIMEOUT 1000
 
 static uint8_t pDataTx[USART_BUFFER_SIZE];
-static uint8_t pDataRx[USART_BUFFER_SIZE];
+static uint8_t serialRxBuffer[USART_BUFFER_SIZE];
+static uint8_t serialRxBufferIndex = 0;
+static uint8_t serialRx;
+
+#define ENVIO_INICIAL "\012Starting up\12\15"
+#define ENVIO_PERIODICO "Periodical transmission\12\15"
 
 /* Private functions prototypes ---------------------------------------------*/
 
 static void SystemClock_Config(void);
-static void Error_Handler(void);
+
+void Error_Handler_detailed(int line, uint8_t * file);
+
 
 static void USART3_UART_InitialInit(void);
+
+static void execute_serial_command(uint8_t * command);
 
 
 int main(void)
 {
-
 	HAL_Init();
 
 	SystemClock_Config();
 
 	USART3_UART_InitialInit();
 
+	strcpy(pDataTx,ENVIO_INICIAL);
+
+//	HAL_UART_Transmit_IT(huart,pDataTx,strlen(pDataTx));
+//	size_t longitudStr = strlen(ENVIO_INICIAL);
+
+
+	HAL_StatusTypeDef txstatus = HAL_UART_Transmit(huart,pDataTx,strlen(pDataTx),USART_TIMEOUT);
+	if(txstatus!=HAL_OK)
+	{
+		Error_Handler_detailed(__LINE__,__FILE__);
+	}
+//	HAL_UART_Receive_IT(huart,serialRx,1);
+
+	strcpy(pDataTx,ENVIO_PERIODICO);
+
 	for(;;)
 	{
-		if(HAL_UART_Receive(&huart,&pDataTx[0],USART_BUFFER_SIZE,USART_TIMEOUT)==HAL_OK)
+		HAL_Delay(100);
+
+		HAL_StatusTypeDef txstatus = HAL_UART_Transmit(huart,pDataTx,strlen(pDataTx),USART_TIMEOUT);
+
+		if(txstatus!=HAL_OK)
 		{
-			HAL_UART_Transmit(&huart,&pDataTx[0],USART_BUFFER_SIZE,USART_TIMEOUT);
+			Error_Handler_detailed(__LINE__,__FILE__);
 		}
-//		HAL_UART_Transmit(&huart,&pDataRx[0],USART_BUFFER_SIZE,USART_TIMEOUT);
+
 
 	}
 }
@@ -101,7 +127,7 @@ static void SystemClock_Config(void)
 	RCC_OscInitStruct.PLL.PLLQ = 7;
 	if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
 	{
-		Error_Handler();
+		Error_Handler_detailed(__LINE__,__FILE__);
 	}
 
 	/* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
@@ -113,7 +139,7 @@ static void SystemClock_Config(void)
 	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 	if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
 	{
-		Error_Handler();
+		Error_Handler_detailed(__LINE__,__FILE__);
 	}
 
 	/* STM32F405x/407x/415x/417x Revision Z devices: prefetch is supported  */
@@ -124,10 +150,9 @@ static void SystemClock_Config(void)
 	}
 }
 
-static void Error_Handler(void)
+
+void Error_Handler_detailed(int line, uint8_t * file)
 {
-	/* Turn LED5 on */
-	BSP_LED_On(LED5);
 	while(1)
 	{
 	}
@@ -141,37 +166,43 @@ void HAL_MspInit(void)
 
 }
 
+
 void HAL_MspDeInit(void)
 {
 
 }
 
+
 void HAL_UART_MspInit(UART_HandleTypeDef * huart)
 {
-
-	// Enable the UART3 clock
+	// a. Enable the UART3 clock
 	__HAL_RCC_USART3_CLK_ENABLE();
 
-	// Enable the GPIOA clock
+	// b. Enable the GPIOA clock
 	__HAL_RCC_GPIOB_CLK_ENABLE();
 
 
-	// PORT B INIT:
+	// b. PORT B INIT:
 
-	GPIO_InitTypeDef hgpioInitInput;
+	GPIO_InitTypeDef * hgpioInitInput;
+	hgpioInitInput = malloc(sizeof(GPIO_InitTypeDef *));
 
-	hgpioInitInput.Pin = USART_PIN_TX | USART_PIN_RX ;
+	hgpioInitInput->Pin = USART_PIN_TX | USART_PIN_RX ;
+	hgpioInitInput->Mode = GPIO_MODE_AF_PP;
+	hgpioInitInput->Pull = GPIO_NOPULL;
+	hgpioInitInput->Speed = GPIO_SPEED_MEDIUM;
+	hgpioInitInput->Alternate = GPIO_AF7_USART3;
+	HAL_GPIO_Init(USART_PORT,hgpioInitInput);
 
-	hgpioInitInput.Mode = GPIO_MODE_AF_PP;
-	hgpioInitInput.Pull = GPIO_PULLUP;
-	hgpioInitInput.Speed = GPIO_SPEED_MEDIUM;
-	hgpioInitInput.Alternate = GPIO_AF7_USART3;
-	HAL_GPIO_Init(USART_PORT,&hgpioInitInput);
+	free(hgpioInitInput);
 
+	// c. NVIC configuration (when using HAL_UART_Transmit_IT() and HAL_UART_Receive_IT() APIs)
 
-	// Configure NVIC
+	//	Configure the USARTx interrupt priority.			references: p66,
+	HAL_NVIC_SetPriority(USART3_IRQn,6,0);
 
-	// Configure DMA
+	//	Enable the NVIC USART IRQ handle
+	HAL_NVIC_EnableIRQ(USART3_IRQn);
 
 }
 
@@ -179,9 +210,11 @@ void HAL_UART_MspInit(UART_HandleTypeDef * huart)
 void HAL_UART_MspDeInit(UART_HandleTypeDef * huart)
 {
 	//Nothing yet
+	free(huart);
+
+	__HAL_RCC_USART3_CLK_DISABLE();
 
 }
-
 
 
 /* Private functions definition ----------------------------------------------*/
@@ -189,36 +222,82 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef * huart)
 static void USART3_UART_InitialInit(void)
 {
 
-//	husart.Init.BaudRate = 9600;
-//	husart.Init.WordLength = USART_WORDLENGTH_8B;
-//	husart.Init.StopBits = USART_STOPBITS_1;
-//	husart.Init.Parity = USART_PARITY_NONE;
-//	husart.Init.Mode = USART_MODE_TX_RX;
-//	husart.Init.CLKPolarity = USART_POLARITY_LOW;
-//	husart.Init.CLKPhase = USART_PHASE_1EDGE;
-//	husart.Init.CLKLastBit = USART_LASTBIT_DISABLE;
-//	HAL_USART_Init(&husart);
-
-
+	huart = (UART_HandleTypeDef *) malloc(sizeof(UART_HandleTypeDef *));
 	// Instance for the USART3
-	huart.Instance = USART3;
+	huart->Instance = USART3;
 
-	// Config Init
-	huart.Init.BaudRate = 9600;
-	huart.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	huart.Init.Mode = UART_MODE_TX_RX;
-	huart.Init.OverSampling = UART_OVERSAMPLING_16;
-	huart.Init.Parity = UART_PARITY_NONE;
-	huart.Init.StopBits = UART_STOPBITS_1;
-	huart.Init.WordLength = UART_WORDLENGTH_8B;
+	// Initial Configuration
+	huart->Init.BaudRate = 115200;
+	huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart->Init.Mode = UART_MODE_TX_RX;
+	huart->Init.OverSampling = UART_OVERSAMPLING_16;
+	huart->Init.Parity = UART_PARITY_NONE;
+	huart->Init.StopBits = UART_STOPBITS_1;
+	huart->Init.WordLength = UART_WORDLENGTH_8B;
 
 
-	if(HAL_UART_Init(&huart)!= HAL_OK)
+	if(HAL_UART_Init(huart)!= HAL_OK)
 	{
-		Error_Handler();
+		Error_Handler_detailed(__LINE__,__FILE__);
+	}
+}
+
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+
+//	HAL_UART_Transmit_IT(huart,pDataTx,strlen(pDataTx));
+}
+
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	__HAL_UART_FLUSH_DRREGISTER(huart); // Clear the buffer to prevent overrun
+
+	switch (serialRx)
+	{
+		case 8:
+		case 127:
+			if (serialRxBufferIndex>0) serialRxBufferIndex--;
+			break;
+
+		case '\n':
+		case '\r':
+			execute_serial_command(serialRxBuffer);
+			serialRxBufferIndex = 0;
+			for (int i = 0; i<USART_BUFFER_SIZE; i++) serialRxBuffer[i] = 0;
+			break;
+
+		default:
+			serialRxBuffer[serialRxBufferIndex] = serialRx;
+			serialRxBufferIndex++;
+			if (serialRxBufferIndex >=USART_BUFFER_SIZE)
+			{
+				serialRxBufferIndex = 0;
+				for (int i = 0; i<USART_BUFFER_SIZE; i++) serialRxBuffer[i] = 0;
+			}
 	}
 
+	/*	RxBufferIndex	serialRxBuffer[USART_BUFFER_SIZE]	*/
+	HAL_UART_Receive_IT(huart,serialRx,1);
 }
+
+static void execute_serial_command(uint8_t * command)
+{
+	//TODO: Crear la lista de comandos para responder a peticiones externas
+	HAL_StatusTypeDef txstatus = HAL_UART_Transmit(huart,command,strlen(command),USART_TIMEOUT);
+	if(txstatus!=HAL_OK)
+	{
+		Error_Handler_detailed(__LINE__,__FILE__);
+	}
+}
+
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+	Error_Handler_detailed(__LINE__,__FILE__);
+}
+
 
 #ifdef  USE_FULL_ASSERT
 /**

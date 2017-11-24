@@ -16,6 +16,10 @@
 #endif
 #include "stm32f4xx_it.h"
 
+/* extern variables ----------------------------------------------------------*/
+
+extern UART_HandleTypeDef * huart; // Defined in main.c
+
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
@@ -38,6 +42,14 @@ void SysTick_Handler(void)
 	HAL_SYSTICK_IRQHandler();
 #ifdef USE_RTOS_SYSTICK
 	osSystickHandler();
+
 #endif
 }
 
+////HAL_UART_IRQHandler()
+
+void USART3_IRQHandler(void)
+{
+	HAL_UART_IRQHandler(huart);
+
+}

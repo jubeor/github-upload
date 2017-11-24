@@ -24,9 +24,9 @@ typedef struct {
 
 	USART_TypeDef USART_Instance;
 	UART_HandleTypeDef huart;
-	uint16_t USART_PORT = GPIOB;
-	uint16_t USART_PIN_TX = GPIO_PIN_10;
-	uint16_t USART_PIN_RX = GPIO_PIN_11;
+	GPIO_TypeDef USART_PORT;
+	uint16_t USART_PIN_TX;
+	uint16_t USART_PIN_RX;
 
 	/* WIFI configuration*/
 	char * SSID[SSID_MAX_LENGHT];
@@ -44,8 +44,11 @@ typedef struct {
 
 
 HAL_StatusTypeDef ESP8266_Init(ESP8266_BindingTypeDef * hesp8266);
+
 void ESP8266_MspInit(ESP8266_BindingTypeDef * hesp8266);
+
 HAL_StatusTypeDef ESP8266_DeInit(ESP8266_BindingTypeDef * hesp8266);
+
 void ESP8266_MspDeInit(ESP8266_BindingTypeDef * hesp8266);
 
 HAL_StatusTypeDef ESP8266_Connect(ESP8266_BindingTypeDef * hesp8266);
@@ -53,11 +56,14 @@ HAL_StatusTypeDef ESP8266_Connect(ESP8266_BindingTypeDef * hesp8266);
 HAL_StatusTypeDef ESP8266_Disconnect(ESP8266_BindingTypeDef * hesp8266);
 
 HAL_StatusTypeDef ESP8266_TCP_Open(ESP8266_BindingTypeDef * hesp8266, char * IP, uint16_t remotePort);
+
 HAL_StatusTypeDef ESP8266_TCP_Close(ESP8266_BindingTypeDef * hesp8266, char * IP, uint16_t remotePort);
 
 
 HAL_StatusTypeDef ESP8266_Send(ESP8266_BindingTypeDef * hesp8266, char * tx_string);
+
 HAL_StatusTypeDef ESP8266_Receive(ESP8266_BindingTypeDef * hesp8266, char * rx_str);
+
 HAL_StatusTypeDef ESP8266_SendReceive(ESP8266_BindingTypeDef * hesp8266, char * tx_str, char * rx_str);
 
 #endif  /* __ESP8266_BINDING_ */
