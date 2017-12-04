@@ -59,7 +59,7 @@ static uint8_t serialRx;
 
 static void SystemClock_Config(void);
 
-static void Error_Handler_detailed(int line, uint8_t * file);
+static void Error_Handler_detailed(int line, char * file);
 
 static void USART3_UART_InitialInit(void);
 
@@ -72,20 +72,22 @@ int main(void)
 {
 	HAL_Init();
 
-	HAL_StatusTypeDef txstatus ;
-
 	SystemClock_Config();
 
 	USART3_UART_InitialInit();
 
 	strcpy(serialTxBuffer,ENVIO_INICIAL);
 
-//	txstatus = HAL_UART_Transmit(&huart,&serialTxBuffer,strlen(serialTxBuffer),USART_TIMEOUT);
-	txstatus = HAL_UART_Transmit_IT(&huart3,&serialTxBuffer,strlen(serialTxBuffer));
-	if(txstatus!=HAL_OK)
+	if(HAL_UART_Transmit_IT(&huart3,&serialTxBuffer,strlen(serialTxBuffer))!=HAL_OK)
 	{
 		Error_Handler_detailed(__LINE__,__FILE__);
 	}
+
+
+//	if(HAL_UART_Receive_IT(&huart3,&serialRx,1)!=HAL_OK)
+//	{
+//		Error_Handler_detailed(__LINE__,__FILE__);
+//	}
 
 
 	for(;;)
@@ -93,8 +95,7 @@ int main(void)
 		HAL_Delay(1000);
 
 		strcpy(serialTxBuffer,ENVIO_PERIODICO);
-//		if(HAL_UART_Transmit_IT(&huart,&serialTxBuffer,strlen(serialTxBuffer))!=HAL_OK)
-		if(HAL_UART_Transmit(&huart3,&serialTxBuffer,strlen(serialTxBuffer),USART_TIMEOUT)!=HAL_OK)
+		if(HAL_UART_Transmit_IT(&huart3,&serialTxBuffer,strlen(serialTxBuffer))!=HAL_OK)
 		{
 			Error_Handler_detailed(__LINE__,__FILE__);
 		}
@@ -133,7 +134,10 @@ static void SystemClock_Config(void)
 
 	/* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
      clocks dividers */
-	RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+	RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK |
+			RCC_CLOCKTYPE_HCLK |
+			RCC_CLOCKTYPE_PCLK1 |
+			RCC_CLOCKTYPE_PCLK2);
 	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
 	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
 	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
@@ -152,7 +156,7 @@ static void SystemClock_Config(void)
 }
 
 
-void Error_Handler_detailed(int line, uint8_t * file)
+void Error_Handler_detailed(int line, char * file)
 {
 	while(1)
 	{
@@ -266,10 +270,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		case '\r':
 			execute_serial_command(serialRxBuffer);
 			serialRxBufferIndex = 0;
-			for (int i = 0; i<USART_BUFFER_SIZE; i++) serialRxBuffer[i] = 0;
 			break;
 
 		default:
+			if (serialRxBufferIndex == 0)
+			{
+				for (int i = 0; i<USART_BUFFER_SIZE; i++) serialRxBuffer[i] = 0;
+			}
 			serialRxBuffer[serialRxBufferIndex] = serialRx;
 			serialRxBufferIndex++;
 			if (serialRxBufferIndex >=USART_BUFFER_SIZE)
@@ -280,17 +287,39 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	}
 
 	/*	RxBufferIndex	serialRxBuffer[USART_BUFFER_SIZE]	*/
-	//HAL_UART_Receive_IT(&huart,&serialRx,1);
+	HAL_UART_Receive_IT(huart,&serialRx,1);
 }
 
 static void execute_serial_command(uint8_t * command)
 {
 	//TODO: Crear la lista de comandos para responder a peticiones externas
-	HAL_StatusTypeDef txstatus = HAL_UART_Transmit(&huart3,command,strlen(command),USART_TIMEOUT);
-	if(txstatus!=HAL_OK)
+
+	HAL_StatusTypeDef txStatus = HAL_OK;
+
+	while (huart3.Lock==HAL_BUSY)
 	{
-		Error_Handler_detailed(__LINE__,__FILE__);
+		HAL_Delay(10);
 	}
+
+	txStatus = HAL_UART_Transmit_IT(&huart3,command,strlen((char *)command));
+
+
+	while (txStatus!=HAL_OK)
+	{
+		if(txStatus!=HAL_ERROR || txStatus!=HAL_TIMEOUT)
+		{
+			Error_Handler_detailed(__LINE__,__FILE__);
+		}
+		if(txStatus!=HAL_BUSY)
+		{
+			HAL_Delay(10);
+
+			HAL_UART_Transmit_IT(&huart3,command,strlen((char *)command));
+
+		}
+
+	}
+
 }
 
 
