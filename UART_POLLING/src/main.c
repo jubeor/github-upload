@@ -52,8 +52,8 @@ static uint8_t serialRxBuffer[USART_BUFFER_SIZE];
 static uint8_t serialRxBufferIndex = 0;
 static uint8_t serialRx;
 
-#define ENVIO_INICIAL "\012Starting up\12\15"
-#define ENVIO_PERIODICO "Periodical transmission\12\15"
+#define ENVIO_INICIAL "\r\rStarting up\r"
+#define ENVIO_PERIODICO "Periodical transmission\r"
 
 /* Private functions prototypes ---------------------------------------------*/
 
@@ -84,16 +84,15 @@ int main(void)
 	}
 
 
-//	if(HAL_UART_Receive_IT(&huart3,&serialRx,1)!=HAL_OK)
-//	{
-//		Error_Handler_detailed(__LINE__,__FILE__);
-//	}
+	if(HAL_UART_Receive_IT(&huart3,&serialRx,1)!=HAL_OK)
+	{
+		Error_Handler_detailed(__LINE__,__FILE__);
+	}
 
 
 	for(;;)
 	{
 		HAL_Delay(1000);
-
 		strcpy(serialTxBuffer,ENVIO_PERIODICO);
 		if(HAL_UART_Transmit_IT(&huart3,&serialTxBuffer,strlen(serialTxBuffer))!=HAL_OK)
 		{
@@ -261,13 +260,17 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 	switch (serialRx)
 	{
+		// Borrar linea o flecha atrás?
 		case 8:
 		case 127:
 			if (serialRxBufferIndex>0) serialRxBufferIndex--;
 			break;
 
+		// Fin de linea
 		case '\n':
 		case '\r':
+			if (serialRxBufferIndex==0) break;
+			strcat(serialRxBuffer,"\r");
 			execute_serial_command(serialRxBuffer);
 			serialRxBufferIndex = 0;
 			break;
@@ -314,7 +317,7 @@ static void execute_serial_command(uint8_t * command)
 		{
 			HAL_Delay(10);
 
-			HAL_UART_Transmit_IT(&huart3,command,strlen((char *)command));
+			txStatus = HAL_UART_Transmit_IT(&huart3,command,strlen((char *)command));
 
 		}
 
