@@ -52,11 +52,5 @@ void USART3_IRQHandler(void)
 {
 	HAL_NVIC_ClearPendingIRQ(USART3_IRQn);
 	HAL_UART_IRQHandler(&huart3);
-
-//	__HAL_UART_CLEAR_FLAG(&huart3,UART_FLAG_RXNE);
-//	__HAL_UART_CLEAR_FLAG(&huart3,UART_FLAG_TC);
-//	__HAL_UART_CLEAR_FLAG(&huart3,UART_FLAG_CTS);
-//	__HAL_UART_CLEAR_FLAG(&huart3,UART_FLAG_LBD);
-//	__HAL_UART_CLEAR_OREFLAG(&huart3);
-//	__HAL_UART_CLEAR_NEFLAG(&huart3);
 }
+

@@ -22,8 +22,8 @@
 #include "stm32f4xx.h"
 #include "stm32f4_discovery.h"
 
-
-
+#include "UARTBind.h"
+#include "error_handling.h"
 /* Private typedef -----------------------------------------------------------*/
 
 
@@ -59,14 +59,9 @@ static uint8_t serialRx;
 
 static void SystemClock_Config(void);
 
-static void Error_Handler_detailed(int line, char * file);
-
-static void USART3_UART_InitialInit(void);
-
-//static void serialSend_P()
+static void USART3_UART_Init(void);
 
 static void execute_serial_command(uint8_t * command);
-
 
 int main(void)
 {
@@ -74,7 +69,7 @@ int main(void)
 
 	SystemClock_Config();
 
-	USART3_UART_InitialInit();
+	USART3_UART_Init();
 
 	strcpy(serialTxBuffer,ENVIO_INICIAL);
 
@@ -155,144 +150,6 @@ static void SystemClock_Config(void)
 }
 
 
-void Error_Handler_detailed(int line, char * file)
-{
-	while(1)
-	{
-	}
-}
-
-
-/* HAL weak function redefinition */
-
-void HAL_MspInit(void)
-{
-
-}
-
-
-void HAL_MspDeInit(void)
-{
-
-}
-
-
-void HAL_UART_MspInit(UART_HandleTypeDef * huart)
-{
-	// a. Enable the UART3 clock
-	__HAL_RCC_USART3_CLK_ENABLE();
-
-	// b. Enable the GPIOA clock
-	__HAL_RCC_GPIOB_CLK_ENABLE();
-
-
-	// b. PORT B INIT:
-
-	GPIO_InitTypeDef hgpioInitInput;
-//	hgpioInitInput = malloc(sizeof(GPIO_InitTypeDef *));
-
-	hgpioInitInput.Pin = USART_PIN_TX | USART_PIN_RX ;
-	hgpioInitInput.Mode = GPIO_MODE_AF_PP;
-	hgpioInitInput.Pull = GPIO_PULLUP;
-	hgpioInitInput.Speed = GPIO_SPEED_MEDIUM;
-	hgpioInitInput.Alternate = GPIO_AF7_USART3;
-	HAL_GPIO_Init(USART_PORT,&hgpioInitInput);
-
-//	free(hgpioInitInput);
-
-	// c. NVIC configuration (when using HAL_UART_Transmit_IT() and HAL_UART_Receive_IT() APIs)
-
-	//	Configure the USARTx interrupt priority.			references: p66,
-	HAL_NVIC_SetPriority(USART3_IRQn,6,0);
-
-	//	Enable the NVIC USART IRQ handle
-	HAL_NVIC_EnableIRQ(USART3_IRQn);
-
-}
-
-
-void HAL_UART_MspDeInit(UART_HandleTypeDef * huart)
-{
-	//Nothing yet
-	//free(huart);
-
-	__HAL_RCC_USART3_CLK_DISABLE();
-
-}
-
-
-/* Private functions definition ----------------------------------------------*/
-
-static void USART3_UART_InitialInit(void)
-{
-
-//	huart = (UART_HandleTypeDef *) malloc(sizeof(UART_HandleTypeDef *));
-	// Instance for the USART3
-	huart3.Instance = USART3;
-
-	// Initial Configuration
-	huart3.Init.BaudRate = 115200;
-	huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	huart3.Init.Mode = UART_MODE_TX_RX;
-	huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-	huart3.Init.Parity = UART_PARITY_NONE;
-	huart3.Init.StopBits = UART_STOPBITS_1;
-	huart3.Init.WordLength = UART_WORDLENGTH_8B;
-
-
-	if(HAL_UART_Init(&huart3)!= HAL_OK)
-	{
-		Error_Handler_detailed(__LINE__,__FILE__);
-	}
-}
-
-
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
-{
-
-//	HAL_UART_Transmit_IT(&huart,pDataTx,strlen(pDataTx));
-}
-
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-	__HAL_UART_FLUSH_DRREGISTER(huart); // Clear the buffer to prevent overrun
-
-	switch (serialRx)
-	{
-		// Borrar linea o flecha atrás?
-		case 8:
-		case 127:
-			if (serialRxBufferIndex>0) serialRxBufferIndex--;
-			break;
-
-		// Fin de linea
-		case '\n':
-		case '\r':
-			if (serialRxBufferIndex==0) break;
-			strcat(serialRxBuffer,"\r");
-			execute_serial_command(serialRxBuffer);
-			serialRxBufferIndex = 0;
-			break;
-
-		default:
-			if (serialRxBufferIndex == 0)
-			{
-				for (int i = 0; i<USART_BUFFER_SIZE; i++) serialRxBuffer[i] = 0;
-			}
-			serialRxBuffer[serialRxBufferIndex] = serialRx;
-			serialRxBufferIndex++;
-			if (serialRxBufferIndex >=USART_BUFFER_SIZE)
-			{
-				serialRxBufferIndex = 0;
-				for (int i = 0; i<USART_BUFFER_SIZE; i++) serialRxBuffer[i] = 0;
-			}
-	}
-
-	/*	RxBufferIndex	serialRxBuffer[USART_BUFFER_SIZE]	*/
-	HAL_UART_Receive_IT(huart,&serialRx,1);
-}
-
 static void execute_serial_command(uint8_t * command)
 {
 	//TODO: Crear la lista de comandos para responder a peticiones externas
@@ -323,12 +180,6 @@ static void execute_serial_command(uint8_t * command)
 
 	}
 
-}
-
-
-void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
-{
-	Error_Handler_detailed(__LINE__,__FILE__);
 }
 
 

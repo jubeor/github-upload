@@ -8,28 +8,69 @@
 
 static uint16_t * ledsAddress;
 static uint16_t ledsImage;
+static bool usingInvertedLogic = false;
+static bool usingInvertedLedIndex = false;
 
 enum {ALL_LEDS_ON = ~0, ALL_LEDS_OFF = ~ALL_LEDS_ON};
 
-/* JBeltran Thinks:
- * an Inline function will not have it's own memory space, instead
- * it will be parsed by the compiler in the position where you call it.
- * with this approach or with a macro, we don't use the pile stack.
- *
- * From Learning C Language (Free ebook from stackoverflow)
- * For small functions that get called often, the overhead associated with
- * the function call can be a significant fraction of the total execution
- * time of that function. One way of improving performance, then, is to
- * eliminate the overhead.
- */
 static inline uint16_t convertLedNumberToBit(int ledNumber)
 {
 	return 1 << (ledNumber-1);
 }
 
+static inline uint16_t ifNeededInvertLedIndex(uint16_t ledsImage)
+{
+	uint16_t auxLedsImage = 0;
+	uint16_t auxBitSelect = 0;
+	uint16_t auxBitCopied = 0;
+	int shift_right = 0;
+
+	if (usingInvertedLedIndex)
+	{
+		for (int i=FIRST_LED-1; i< LAST_LED; i++ )
+		{
+			auxBitSelect = convertLedNumberToBit(LAST_LED-i);
+			auxBitCopied = (ledsImage & auxBitSelect);
+			shift_right = ((LAST_LED-1-i*2));
+			if (shift_right>=0)
+			{
+				auxLedsImage |= (auxBitCopied) >> shift_right;
+			}
+			else
+			{
+				auxLedsImage |= (auxBitCopied) << -shift_right;
+			}
+			auxLedsImage |= (auxBitCopied) >> shift_right;
+		}
+
+	}else
+	{
+		auxLedsImage = ledsImage;
+	}
+	return auxLedsImage;
+}
+
+static inline uint16_t ifNeededInvertLogic(uint16_t ledsImage)
+{
+	uint16_t retVal = 0;
+	if (usingInvertedLogic)
+	{
+		retVal = ledsImage^0xffff;
+	}
+	else
+	{
+		retVal = ledsImage;
+	}
+	return retVal;
+}
+
 static inline void updateHardware(void)
 {
-	*ledsAddress = ledsImage;
+	uint16_t auxledsImage = 0;
+
+	auxledsImage = ifNeededInvertLedIndex(ledsImage);
+
+	*ledsAddress = ifNeededInvertLogic(auxledsImage);
 }
 
 static inline uint8_t isLedOutOfBounds(int ledNumber)
@@ -47,16 +88,18 @@ static inline void clearLedImageBit(int ledNumber)
 	ledsImage &= ~convertLedNumberToBit(ledNumber);
 }
 
-void LedDriver_Create(uint16_t * address)
+void LedDriver_Create(uint16_t * LedsRegister, bool useInvertedLogic, bool useInvertedLedIndex)
 {
-	ledsAddress = address;
+	ledsAddress = LedsRegister;
 	ledsImage = ALL_LEDS_OFF;
+	usingInvertedLogic = useInvertedLogic;
+	usingInvertedLedIndex = useInvertedLedIndex;
 	updateHardware();
 }
 
 void LedDriver_Destroy(void)
 {
-
+	usingInvertedLogic = false;
 }
 
 void LedDriver_TurnOn(int ledNumber)

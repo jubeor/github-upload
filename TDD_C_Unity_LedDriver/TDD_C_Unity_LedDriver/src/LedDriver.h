@@ -11,7 +11,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 
-void LedDriver_Create(uint16_t * LedsRegister);
+void LedDriver_Create(uint16_t * LedsRegister, bool useInvertedLogic, bool useInvertedLedIndex);
 void LedDriver_Destroy(void);
 void LedDriver_TurnOn(int ledNumber);
 void LedDriver_TurnOff(int ledNumber);
