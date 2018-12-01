@@ -5,6 +5,9 @@
  *      Author: boj
  *
  * SUMMARY TEST LIST:
+ *
+ * 		ToDo: Clean the code. Get to work with Git effectively
+ *
  *		Done: All leds are off after the driver is initialized
  *		Done: A single LED can be turned on
  *		Done: A single LED can be turned off
@@ -19,7 +22,7 @@
  *		Done: Query if led is off
  *		Done: inverted logic testing
  *		Done: inverted bit order testing
- *		ToDo: Clean the code
+ *
  *
  *
  * Sorry about the "magic" numbers in the tests, I think they are quite ovious
