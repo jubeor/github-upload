@@ -251,7 +251,7 @@
 							<tool id="com.atollic.truestudio.lib.debug.toolchain.gcc.727690325" name="C Compiler" superClass="com.atollic.truestudio.lib.debug.toolchain.gcc.1018221160">
 								<option id="com.atollic.truestudio.gcc.directories.select.760008445" name="Include path" superClass="com.atollic.truestudio.gcc.directories.select" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/UnityStaticLibrary/fixture/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/UnityStaticLibrary/src}&quot;"/>
 								</option>
 								<inputType id="com.atollic.truestudio.gcc.input.49241885" superClass="com.atollic.truestudio.gcc.input"/>
@@ -263,8 +263,31 @@
 							<tool id="com.atollic.truestudio.secoutput.base.1278056644" name="Other" superClass="com.atollic.truestudio.secoutput.base.966837609"/>
 						</toolChain>
 					</folderInfo>
+					<folderInfo id="com.atollic.truestudio.lib.debug.1485233806.1058729824.1929881799" name="/" resourcePath="src">
+						<toolChain id="com.atollic.truestudio.lib.debug.toolchain.548351507" name="Atollic ARM Tools" superClass="com.atollic.truestudio.lib.debug.toolchain" unusedChildren="">
+							<option id="com.atollic.truestudio.general.runtimelib.1385127209.1743314231" name="Runtime Library" superClass="com.atollic.truestudio.general.runtimelib.1385127209"/>
+							<option id="com.atollic.truestudio.toolchain_options.mcu.395912879.1723320388" name="Microcontroller" superClass="com.atollic.truestudio.toolchain_options.mcu.395912879"/>
+							<option id="com.atollic.truestudio.toolchain_options.vendor.2131380455.119447617" name="Vendor name" superClass="com.atollic.truestudio.toolchain_options.vendor.2131380455"/>
+							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="com.atollic.truestudio.lib.debug.toolchain.platform" isAbstract="false" name="Debug platform" superClass="com.atollic.truestudio.lib.debug.toolchain.platform"/>
+							<tool id="com.atollic.truestudio.lib.debug.toolchain.as.1360409090" name="Assembler" superClass="com.atollic.truestudio.lib.debug.toolchain.as.760392901">
+								<inputType id="com.atollic.truestudio.as.input.31179344" name="Input" superClass="com.atollic.truestudio.as.input"/>
+							</tool>
+							<tool id="com.atollic.truestudio.lib.debug.toolchain.gcc.336163700" name="C Compiler" superClass="com.atollic.truestudio.lib.debug.toolchain.gcc.1226428845">
+								<option id="com.atollic.truestudio.gcc.directories.select.1814346340" name="Include path" superClass="com.atollic.truestudio.gcc.directories.select" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/inc}&quot;"/>
+								</option>
+								<inputType id="com.atollic.truestudio.gcc.input.1579375972" superClass="com.atollic.truestudio.gcc.input"/>
+							</tool>
+							<tool id="com.atollic.truestudio.ld.base.696930369" name="C Linker" superClass="com.atollic.truestudio.ld.base.1279071029"/>
+							<tool id="com.atollic.truestudio.lib.debug.toolchain.gpp.1780874894" name="C++ Compiler" superClass="com.atollic.truestudio.lib.debug.toolchain.gpp.1822061018"/>
+							<tool id="com.atollic.truestudio.ldcc.base.2030930562" name="C++ Linker" superClass="com.atollic.truestudio.ldcc.base.1160965498"/>
+							<tool id="com.atollic.truestudio.lib.debug.toolchain.ar.484660400" name="Archiver" superClass="com.atollic.truestudio.lib.debug.toolchain.ar.619669949"/>
+							<tool id="com.atollic.truestudio.secoutput.base.33674815" name="Other" superClass="com.atollic.truestudio.secoutput.base.316845047"/>
+						</toolChain>
+					</folderInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Unity"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="inc"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>
@@ -286,6 +309,7 @@
 		<configuration configurationName="Release">
 			<resource resourceType="PROJECT" workspacePath="/TDD_C_Unity_LedDriver"/>
 		</configuration>
+		<configuration configurationName="Cortex_M4"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>

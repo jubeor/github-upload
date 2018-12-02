@@ -3,6 +3,8 @@
 	<name>TDD_C_Unity_LedDriver</name>
 	<comment></comment>
 	<projects>
+		<project>UnityStaticLibrary</project>
+		<project>UnityStaticLibrary_ARMC-M4</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
